@@ -1,4 +1,6 @@
 # ToDo
 
 ## ToDO for ToDo
-- Add Users
+- Add access layer
+- Add group access
+- Add public access
