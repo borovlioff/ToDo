@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "",
-    "test": "tsc && jest /dist"
+    "test": "jest /src"
   },
   "keywords": [],
   "author": "",

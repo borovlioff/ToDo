@@ -1,4 +1,4 @@
-import { NewTodo, TodoId } from '../entities/ToDo';
+import { NewTodo, Todo, TodoId } from '../entities/ToDo';
 import { UserRepository, TodoRepository } from '../repositories';
 
 export class AddTodoToUser {
@@ -8,21 +8,22 @@ export class AddTodoToUser {
   ) { }
 
   async execute(userId: string, newTodo: NewTodo): Promise<TodoId> {
+    let todoId;
+    let addTodoToUserSucces;
     try {
-
-      const todo = await this.todoRepository.add(newTodo);
-
-      if (todo) {
+       const todo = await this.todoRepository.add(newTodo);
+      if(todo instanceof Todo){
+        todoId = todo.id;
         const userTodo = await this.userRepository.addTodo(userId, todo.id);
-
-        if (!userTodo) {
-          await this.todoRepository.delete(todo.id);
+        if(typeof userTodo === "string"){
+          addTodoToUserSucces = true;
+          return userTodo;
         }
-        
-        return userTodo;
       }
-
     } catch (error) {
+      if(todoId && !addTodoToUserSucces){
+        await this.todoRepository.delete(todoId);  
+      }
       throw error
     }
   }
