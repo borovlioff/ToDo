@@ -5,7 +5,8 @@ import { TodoRepository } from '../repositories';
 export class AddTodo {
   constructor(private readonly todoRepository: TodoRepository) {}
 
-   async execute(todo: NewTodo): Promise<Todo> {
+   async execute(todo: NewTodo): Promise<Todo|Error> {
+
    return await this.todoRepository.add(todo);
   }
 }

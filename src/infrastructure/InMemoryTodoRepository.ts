@@ -7,7 +7,8 @@ export class InMemoryTodoRepository implements TodoRepository {
 
   async add(todo: NewTodo): Promise<Todo> {
     const newTodo = {
-      ...todo,
+      title:todo.title,
+      completed:todo.completed,
       id: Date.now().toString() // генерация уникального идентификатора
     };
     this.todos.push(newTodo);
@@ -32,7 +33,7 @@ export class InMemoryTodoRepository implements TodoRepository {
   async update(todo: Todo): Promise<Todo> {
     const index = this.todos.findIndex((t) => t.id === todo.id);
     if (index >= 0) {
-      this.todos[index] = todo;
+      this.todos[index] = {title:todo.title, completed:todo.completed, id:todo.id};
       return todo
     }
   }

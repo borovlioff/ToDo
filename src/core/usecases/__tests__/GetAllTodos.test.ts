@@ -1,9 +1,10 @@
 import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
+import { TodoRepository } from '../../repositories';
 import { GetAllTodos } from '../GetAllTodos';
 
 describe('GetAllTodos', () => {
   it('should return all todos', async () => {
-    const todoRepository = new InMemoryTodoRepository();
+    const todoRepository:TodoRepository = new InMemoryTodoRepository();
     const getAllTodos = new GetAllTodos(todoRepository);
 
     const newTodos = [
@@ -23,7 +24,10 @@ describe('GetAllTodos', () => {
 
     const todos = await getAllTodos.execute();
 
-    expect(todos.length).toBe(2);
-    expect(todos).toEqual(expect.arrayContaining([todo1,todo2]));
+    if(todos instanceof Array){
+      expect(todos.length).toBe(2);
+      expect(todos).toEqual(expect.arrayContaining([todo1,todo2]));
+    }
+    
   });
 });

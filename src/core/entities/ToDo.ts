@@ -1,6 +1,8 @@
+export type TodoId = string;
+
 export class Todo {
     constructor(
-        public readonly id: string,
+        public readonly id: TodoId,
         public readonly title: string,
         public readonly completed: boolean
           ) {}
