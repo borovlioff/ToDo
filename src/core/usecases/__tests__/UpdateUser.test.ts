@@ -1,44 +1,28 @@
-import { InMemoryUserRepository } from '../../../infrastructure/InMemoryUserRepository';
-import { UpdateUser } from '../UpdateUser';
 import { User } from '../../entities';
-import { TodoRepository, UserRepository } from '../../repositories';
-import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
+import { UserRepository } from '../../repositories';
+import { UpdateUser } from '../UpdateUser';
+import { instance, mock, verify, when } from 'ts-mockito';
 
 describe('UpdateUser', () => {
-    let userRepository: UserRepository;
-    let updateUser: UpdateUser;
-    let todoRepository: TodoRepository;
+  const mockUserRepository = mock<UserRepository>();
+  const updateUser = new UpdateUser(instance(mockUserRepository));
 
-    beforeEach(() => {
-        todoRepository = new InMemoryTodoRepository()
-        userRepository = new InMemoryUserRepository(todoRepository);
-        updateUser = new UpdateUser(userRepository);
-    });
+  it('should update a user', async () => {
+    const updatedUser = new User('1', 'Alice', []);
+    when(mockUserRepository.update(updatedUser)).thenResolve(updatedUser);
 
-    it('should update an existing user', async () => {
-        const user = await userRepository.add({
-            authId: '12345',
-        });
-        if (user instanceof User) {
-            const updatedUser = await updateUser.execute({ ...user, authId: '67890' });
-            if(updatedUser instanceof User){
-                expect(updatedUser.id).toBe(user.id);
-                expect(updatedUser.authId).toBe('67890');
-            }
-        }
+    const result = await updateUser.execute(updatedUser);
 
-    });
+    expect(result).toEqual(updatedUser);
+    verify(mockUserRepository.update(updatedUser)).called();
+  });
 
-    it('should return null if user is not found', async () => {
-        const user = {
-            id: 'non-existing-id',
-            authId: '12345',
-            todos: [],
-        };
-        const updatedUser = await updateUser.execute(user);
-        if(updatedUser instanceof Error){
-            expect(updatedUser).toBeNull();
-        }
-        
-    });
+  it('should return an error if userRepository.update throws an error', async () => {
+    const updatedUser = new User('1', 'Alice', []);
+    const error = new Error('Failed to update user');
+    when(mockUserRepository.update(updatedUser)).thenReject(error);
+
+    await expect(updateUser.execute(updatedUser)).rejects.toThrow(error);
+    verify(mockUserRepository.update(updatedUser)).called();
+  });
 });

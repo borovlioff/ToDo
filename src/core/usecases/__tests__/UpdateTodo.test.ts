@@ -1,28 +1,36 @@
-import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
+import { Todo } from '../../entities';
+import { TodoRepository } from '../../repositories';
 import { UpdateTodo } from '../UpdateTodo';
+import { mock, instance, when, verify } from 'ts-mockito';
 
 describe('UpdateTodo', () => {
+  let todoRepository: TodoRepository;
+  let updateTodo: UpdateTodo;
+
+  beforeEach(() => {
+    todoRepository = mock<TodoRepository>();
+    updateTodo = new UpdateTodo(instance(todoRepository));
+  });
+
   it('should update a todo', async () => {
-    const todoRepository = new InMemoryTodoRepository();
-    const updateTodo = new UpdateTodo(todoRepository);
+    const todo: Todo = { id: '1', title: 'Todo 1', completed: false };
+    const updatedTodo: Todo = { ...todo, completed: true };
+    when(todoRepository.update(updatedTodo)).thenResolve(updatedTodo);
 
-    const newTodo = {
-      title: 'Test todo',
-      description: 'This is a test todo',
-      completed: false,
-      userId: '1',
-    };
-    const addedTodo = await todoRepository.add(newTodo);
+    const result = await updateTodo.execute(updatedTodo);
 
-    const updatedTodo = {
-      ...addedTodo,
-      title: 'Updated test todo',
-      completed: true,
-    };
-    await updateTodo.execute(updatedTodo);
+    expect(result).toEqual(updatedTodo);
+    verify(todoRepository.update(updatedTodo)).once();
+  });
 
-    const fetchedTodo = await todoRepository.getById(addedTodo.id);
-    expect(fetchedTodo.title).toBe(updatedTodo.title);
-    expect(fetchedTodo.completed).toBe(updatedTodo.completed);
+  it('should return an error if todoRepository.update throws an error', async () => {
+    const todo: Todo = { id: '1', title: 'Todo 1', completed: false };
+    const updatedTodo: Todo = { ...todo, completed: true };
+    const error = new Error('Unable to update todo');
+    when(todoRepository.update(updatedTodo)).thenReject(error);
+
+    await expect(updateTodo.execute(updatedTodo)).rejects.toThrow(error);
+
+    verify(todoRepository.update(updatedTodo)).once();
   });
 });

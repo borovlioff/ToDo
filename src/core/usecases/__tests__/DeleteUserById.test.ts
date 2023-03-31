@@ -1,35 +1,35 @@
-import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
-import { InMemoryUserRepository } from '../../../infrastructure/InMemoryUserRepository';
-import { User } from '../../entities';
-import { TodoRepository, UserRepository } from '../../repositories';
+import { mock, instance, verify, when } from 'ts-mockito';
 import { DeleteUserById } from '../DeleteUserById';
+import { UserRepository } from '../../repositories';
 
 describe('DeleteUserById', () => {
-  let todoRepository: TodoRepository
   let userRepository: UserRepository;
   let deleteUserById: DeleteUserById;
 
   beforeEach(() => {
-    todoRepository = new InMemoryTodoRepository();
-    userRepository = new InMemoryUserRepository(todoRepository);
-    deleteUserById = new DeleteUserById(userRepository);
+    userRepository = mock<UserRepository>();
+    deleteUserById = new DeleteUserById(instance(userRepository));
   });
 
   it('should delete a user by id', async () => {
-    const user = await userRepository.add({ authId: '1234' });
+    const userId = 'user-id';
 
-    if(user instanceof User){
-        await deleteUserById.execute(user.id);
-        const deletedUser = await userRepository.getById(user.id);
-        expect(deletedUser).toBeNull();
-    }
-   
+    await deleteUserById.execute(userId);
+
+    verify(userRepository.delete(userId)).once();
   });
 
-  it('should throw an error if the user does not exist', async () => {
-    const nonExistingUserId = 'nonExistingUserId';
-    await expect(deleteUserById.execute(nonExistingUserId)).rejects.toThrow(
-      `User with id ${nonExistingUserId} not found`
-    );
+  it('should throw an error if user deletion fails', async () => {
+    const userId = 'user-id';
+    const error = new Error('Failed to delete user');
+
+    // Set up the mock to throw an error when userRepository.delete is called with userId
+    when(userRepository.delete(userId)).thenReject(error);
+
+    // Execute the code being tested and expect it to throw the error
+    await expect(deleteUserById.execute(userId)).rejects.toThrow(error);
+
+    // Verify that the delete method was called with the expected parameter
+    verify(userRepository.delete(userId)).once();
   });
 });

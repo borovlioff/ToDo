@@ -1,52 +1,42 @@
-import { InMemoryUserRepository } from '../../../infrastructure/InMemoryUserRepository';
-import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
+import { mock, instance, when, verify } from 'ts-mockito';
 import { CreateUser } from '../CreateUser';
+import { UserRepository } from '../../repositories';
 import { NewUser, User } from '../../entities/User';
-import { TodoRepository, UserRepository } from '../../repositories';
 
 describe('CreateUser', () => {
-    let userRepository: UserRepository;
-    let todoRepository: TodoRepository;
-    let createUser: CreateUser;
+  let userRepository: UserRepository;
+  let createUser: CreateUser;
 
-    beforeEach(() => {
-        todoRepository = new InMemoryTodoRepository();
-        userRepository = new InMemoryUserRepository(todoRepository);
-        createUser = new CreateUser(userRepository);
-    });
+  beforeEach(() => {
+    userRepository = mock<UserRepository>();
+    createUser = new CreateUser(instance(userRepository));
+  });
 
+  it('should create a new user', async () => {
+    const newUser = {
+      authId: 'authId1',
+      todos:[],
+    };
+    const user = new User('user-id', newUser.authId, newUser.todos);
 
-    describe('execute', () => {
-        it('should create a new user with an empty todo list', async () => {
-            const newUser = {
-                authId: '12345',
-            };
-            const createdUser = await createUser.execute(newUser);
-            if (createdUser instanceof Error) {
+    when(userRepository.add(newUser)).thenResolve(user);
 
-            } else {
-                expect(createdUser.id).toBeTruthy();
-                expect(createdUser.authId).toBe(newUser.authId);
-                expect(createdUser.todos).toEqual([]);
-            }
-        });
+    const result = await createUser.execute(newUser);
 
-        it('should create a new user with an existing todo item', async () => {
-            const todo = await todoRepository.add({ title: 'test todo', completed: false });
-            if (todo instanceof Error) { }
-            else {
-                const newUser = {
-                    authId: '12345',
-                    todos: [todo.id],
-                };
-                const createdUser = await createUser.execute(newUser);
+    expect(result).toEqual(user);
+    verify(userRepository.add(newUser)).once();
+  });
 
-                if (createdUser instanceof User) {
-                    expect(createdUser.id).toBeTruthy();
-                    expect(createdUser.authId).toBe(newUser.authId);
-                    expect(createdUser.todos).toEqual([todo.id]);
-                }
-            }
-        });
-    });
+  it('should throw an error if user creation failed', async () => {
+    const newUser = {
+        authId: 'authId1',
+        todos:[],
+      };
+    const error = new Error('Failed to create user');
+
+    when(userRepository.add(newUser)).thenReject(error);
+
+    await expect(createUser.execute(newUser)).rejects.toThrow(error);
+    verify(userRepository.add(newUser)).once();
+  });
 });

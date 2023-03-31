@@ -1,3 +1,4 @@
+import { mock, instance, when, verify } from 'ts-mockito';
 import { AddTodoToUser } from '../AddTodoToUser';
 import { UserRepository, TodoRepository } from '../../repositories';
 import { NewTodo, Todo } from '../../entities/ToDo';
@@ -8,63 +9,55 @@ describe('AddTodoToUser', () => {
   let addTodoToUser: AddTodoToUser;
 
   beforeEach(() => {
-    userRepository = {
-      getById: jest.fn(),
-      getByAuthId: jest.fn(),
-      add: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      addTodo: jest.fn(),
-      deleteTodoById: jest.fn(),
-    };
-
-    todoRepository = {
-      add: jest.fn(),
-      getById: jest.fn(),
-      getAll: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-
-    addTodoToUser = new AddTodoToUser(userRepository, todoRepository);
+    userRepository = mock<UserRepository>();
+    todoRepository = mock<TodoRepository>();
+    addTodoToUser = new AddTodoToUser(
+      instance(userRepository),
+      instance(todoRepository),
+    );
   });
 
-  it('adds a new todo to a user', async () => {
-    const userId = '1';
+  it('should add a todo to a user', async () => {
+    const userId = 'user-id';
     const newTodo: NewTodo = {
-      title: 'Test Todo',
-      completed: false
+      title: 'New Todo',
+      completed: true,
     };
-    const todoId = '2';
-  
+    const todo = new Todo(
+      'todo-id',
+      newTodo.title,
+      newTodo.completed
+    );
+    const expectedTodoId = 'todo-id';
 
-    (todoRepository.add as jest.Mock).mockResolvedValueOnce(new Todo(todoId, newTodo.title, newTodo.completed ));
-    (userRepository.addTodo as jest.Mock).mockResolvedValueOnce(todoId);
+    when(todoRepository.add(newTodo)).thenResolve(todo);
+    when(userRepository.addTodo(userId, todo.id)).thenResolve(expectedTodoId);
 
     const result = await addTodoToUser.execute(userId, newTodo);
-    expect(result).toBe(todoId);
-    expect(userRepository.addTodo).toHaveBeenCalledWith(userId, todoId);
-    expect(todoRepository.add).toHaveBeenCalledWith(newTodo);
+
+    expect(result).toEqual(expectedTodoId);
+    verify(todoRepository.add(newTodo)).once();
+    verify(userRepository.addTodo(userId, todo.id)).once();
   });
 
-  it('deletes the created todo if adding it to user fails', async () => {
-    const userId = '1';
+  it('should delete the added todo if adding to user failed', async () => {
+    const userId = 'user-id';
     const newTodo: NewTodo = {
-      title: 'Test Todo',
-      completed: false
+      title: 'New Todo',
+      completed: false,
     };
-    const todoId = '2';
+    const todo = new Todo(
+      'todo-id',
+      newTodo.title,
+      newTodo.completed
+    );
 
-    (todoRepository.add as jest.Mock).mockResolvedValueOnce(new Todo(todoId, newTodo.title, newTodo.completed ));
-    (userRepository.addTodo as jest.Mock).mockRejectedValueOnce(new Error('Add todo failed'));
-    (todoRepository.delete as jest.Mock).mockResolvedValueOnce(undefined);
+    when(todoRepository.add(newTodo)).thenResolve(todo);
+    when(userRepository.addTodo(userId, todo.id)).thenReject(new Error());
 
-    try {
-      await addTodoToUser.execute(userId, newTodo);
-      fail('Should have thrown an error');
-    } catch (error) {
-      expect(error).toBeDefined();
-      expect(todoRepository.delete).toHaveBeenCalledWith(todoId);
-    }
+    await expect(addTodoToUser.execute(userId, newTodo)).rejects.toThrow(Error);
+    verify(todoRepository.add(newTodo)).once();
+    verify(userRepository.addTodo(userId, todo.id)).once();
+    verify(todoRepository.delete(todo.id)).once();
   });
 });

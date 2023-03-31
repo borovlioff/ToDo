@@ -1,33 +1,35 @@
-import { InMemoryTodoRepository } from '../../../infrastructure/InMemoryTodoRepository';
-import { TodoRepository } from '../../repositories';
+import { mock, instance, when } from 'ts-mockito';
 import { GetAllTodos } from '../GetAllTodos';
+import { TodoRepository } from '../../repositories';
+import { Todo } from '../../entities/ToDo';
 
 describe('GetAllTodos', () => {
-  it('should return all todos', async () => {
-    const todoRepository:TodoRepository = new InMemoryTodoRepository();
-    const getAllTodos = new GetAllTodos(todoRepository);
+  let todoRepository: TodoRepository;
+  let getAllTodos: GetAllTodos;
 
-    const newTodos = [
-      {
-        title: 'Test todo 1',
-        completed: false,
-      },
-      {
-        title: 'Test todo 2',
-        completed: true,
-      },
+  beforeEach(() => {
+    todoRepository = mock<TodoRepository>();
+    getAllTodos = new GetAllTodos(instance(todoRepository));
+  });
+
+  it('should return all todos', async () => {
+    const todos: Todo[] = [
+      new Todo('1', 'Todo 1', false),
+      new Todo('2', 'Todo 2', true),
     ];
 
-    
-    const todo1 =  await todoRepository.add(newTodos[0]);
-    const todo2 =  await todoRepository.add(newTodos[1]);
+    when(todoRepository.getAll()).thenResolve(todos);
 
-    const todos = await getAllTodos.execute();
+    const result = await getAllTodos.execute();
 
-    if(todos instanceof Array){
-      expect(todos.length).toBe(2);
-      expect(todos).toEqual(expect.arrayContaining([todo1,todo2]));
-    }
-    
+    expect(result).toEqual(todos);
+  });
+
+  it('should return an error if the repository throws an error', async () => {
+    const error = new Error('Failed to get todos');
+
+    when(todoRepository.getAll()).thenReject(error);
+
+    await expect(getAllTodos.execute()).rejects.toThrowError(error);
   });
 });
