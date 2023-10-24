@@ -29,6 +29,7 @@ export class CliAdapter implements CliPort {
 
             case 'list':
                 const todos = await this.getAllTodos.execute();
+                if(todos instanceof Error) { console.log(todos); break}
                 console.log('Todo List:');
                 todos.forEach(todo => {
                     console.log(`${todo.id} - ${todo.title} [${todo.completed ? 'X' : ' '}]`);
@@ -38,6 +39,7 @@ export class CliAdapter implements CliPort {
             case 'get':
                 const findId = process.argv[3];
                 const findTodo = await this.getByIdTodo.execute(findId);
+                if(findTodo instanceof Error){ console.log(findTodo); break}
                 console.log(`Todo with id: ${findTodo.id} - ${findTodo.title} [${findTodo.completed ? 'X' : ' '}]`);
                 break;
 
